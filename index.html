@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>休蛋幾勒</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #FBF3DF;
+    --card: #FFFFFF;
+    --card-border: #EDE0BE;
+    --ink: #3D2B1F;
+    --ink-soft: #8B7355;
+    --yolk: #F0A73B;
+    --yolk-deep: #D98E1F;
+    --sage: #6B8E5A;
+    --sage-bg: #E9F0E3;
+    --amber-bg: #FCEAC9;
+    --amber-ink: #9C6B12;
+    --line: #F0E4C6;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{
+    max-width:600px;
+    margin:0 auto;
+    padding:28px 18px 60px;
+  }
+  header{
+    margin-bottom:22px;
+  }
+  header h1{
+    font-family:'Baloo 2',sans-serif;
+    font-weight:700;
+    font-size:28px;
+    margin:0 0 4px;
+    letter-spacing:-0.01em;
+  }
+  header p{
+    margin:0;
+    color:var(--ink-soft);
+    font-size:14px;
+    line-height:1.6;
+  }
+  .card{
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:18px;
+    padding:18px;
+    margin-bottom:16px;
+  }
+  .card h2{
+    font-family:'Baloo 2',sans-serif;
+    font-size:16px;
+    margin:0 0 14px;
+    font-weight:600;
+  }
+  .row{
+    display:flex;
+    gap:10px;
+    margin-bottom:10px;
+  }
+  .row > div{flex:1;}
+  label{
+    display:block;
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-bottom:5px;
+  }
+  input, select{
+    width:100%;
+    height:42px;
+    padding:0 12px;
+    border-radius:10px;
+    border:1px solid var(--card-border);
+    background:#FFFDF8;
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    color:var(--ink);
+    appearance:none;
+    -webkit-appearance:none;
+  }
+  select{
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%238B7355'/></svg>");
+    background-repeat:no-repeat;
+    background-position:right 14px center;
+    padding-right:30px;
+  }
+  input:focus, select:focus{
+    outline:2px solid var(--yolk);
+    outline-offset:-1px;
+  }
+  button{
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:14px;
+    border:none;
+    border-radius:10px;
+    padding:11px 16px;
+    cursor:pointer;
+    transition:transform .08s ease;
+  }
+  button:active{transform:scale(0.97);}
+  .btn-primary{
+    background:var(--yolk);
+    color:#fff;
+    width:100%;
+  }
+  .btn-primary:hover{background:var(--yolk-deep);}
+  .btn-ghost{
+    background:transparent;
+    color:var(--ink-soft);
+    border:1px solid var(--card-border);
+  }
+  .btn-sage{
+    background:var(--sage);
+    color:#fff;
+  }
+  .person{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:14px 4px;
+    border-bottom:1px solid var(--line);
+    cursor:pointer;
+  }
+  .person:last-child{border-bottom:none;}
+  .person-name{
+    font-weight:600;
+    font-size:15px;
+  }
+  .person-sub{
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-top:2px;
+  }
+  .badge{
+    font-size:13px;
+    font-weight:700;
+    padding:5px 10px;
+    border-radius:20px;
+  }
+  .badge-owed{background:var(--amber-bg); color:var(--amber-ink);}
+  .badge-clear{background:var(--sage-bg); color:var(--sage);}
+  .detail{
+    margin-top:8px;
+    padding-top:8px;
+    border-top:1px dashed var(--line);
+  }
+  .detail table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+    margin-bottom:12px;
+  }
+  .detail th{
+    text-align:left;
+    color:var(--ink-soft);
+    font-weight:500;
+    padding:6px 4px;
+    border-bottom:1px solid var(--line);
+  }
+  .detail td{
+    padding:6px 4px;
+    border-bottom:1px solid var(--line);
+  }
+  .del{
+    color:#B4886B;
+    cursor:pointer;
+    font-size:12px;
+    background:none;
+    border:none;
+    padding:2px 6px;
+  }
+  .cards-strip{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-bottom:14px;
+  }
+  .egg-pill{
+    width:26px;height:26px;
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:12px;
+  }
+  .egg-full{background:var(--yolk); color:#fff;}
+  .egg-empty{background:var(--line); color:var(--ink-soft);}
+  .pay-row{
+    display:flex;
+    gap:8px;
+    align-items:flex-end;
+  }
+  .empty-state{
+    text-align:center;
+    padding:32px 12px;
+    color:var(--ink-soft);
+    font-size:14px;
+  }
+  .footer-note{
+    text-align:center;
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-top:20px;
+    line-height:1.6;
+  }
+  .loading{
+    text-align:center;
+    padding:40px;
+    color:var(--ink-soft);
+  }
+  .egg-picker{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .egg-btn{
+    width:40px;
+    height:40px;
+    border-radius:10px;
+    border:1px solid var(--card-border);
+    background:#FFFDF8;
+    font-size:19px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    padding:0;
+    transition:background .1s ease, border-color .1s ease, transform .08s ease;
+  }
+  .egg-btn:active{transform:scale(0.94);}
+  .egg-btn.selected{
+    background:var(--yolk);
+    border-color:var(--yolk-deep);
+  }
+  .egg-picker-count{
+    margin-left:2px;
+    align-self:center;
+    font-size:13px;
+    color:var(--ink-soft);
+    font-weight:600;
+  }
+  .admin-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-bottom:16px;
+  }
+  .admin-stat{
+    background:var(--amber-bg);
+    border-radius:12px;
+    padding:12px;
+  }
+  .admin-stat .num{
+    font-family:'Baloo 2',sans-serif;
+    font-size:20px;
+    font-weight:700;
+    color:var(--amber-ink);
+  }
+  .admin-stat .label{
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-top:2px;
+  }
+  .admin-table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+  }
+  .admin-table th{
+    text-align:left;
+    color:var(--ink-soft);
+    font-weight:500;
+    padding:6px 4px;
+    border-bottom:1px solid var(--line);
+  }
+  .admin-table td{
+    padding:7px 4px;
+    border-bottom:1px solid var(--line);
+  }
+  .admin-table td.num-col, .admin-table th.num-col{
+    text-align:right;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🥚 休蛋幾勒</h1>
+    <p>早安我的朋，恭喜您今天又選擇了健康(*≧ω≦)</p>
+  </header>
+
+  <div id="loading" class="loading">讀取中…</div>
+
+  <div id="app" style="display:none;">
+    <div class="card">
+      <h2>您今天吃了幾顆</h2>
+      <div class="row">
+        <div>
+          <label>姓名</label>
+          <select id="in-name">
+            <option value="" disabled selected>選擇姓名</option>
+          </select>
+        </div>
+        <div>
+          <label>日期</label>
+          <input id="in-date" type="date">
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>顆數</label>
+          <div id="egg-picker" class="egg-picker"></div>
+        </div>
+      </div>
+      <button class="btn-primary" onclick="addRecord()">新增紀錄</button>
+    </div>
+
+    <div class="card" id="admin-card">
+      <h2>團主統計</h2>
+      <div id="admin-summary"></div>
+    </div>
+
+    <div class="card" id="list-card">
+      <h2>大家的帳</h2>
+      <div id="people-list"></div>
+    </div>
+
+    <div class="footer-note">資料存在這個蛋帳本裡，重新整理不會消失。<br>需要備份到 Notion 時，跟我說一聲，我幫你整理成表格貼過去。</div>
+  </div>
+</div>
+
+<script>
+const STORE_KEY = "egg-ledger";
+const MEMBERS = ["Avis","Cece","Dolphin","JC","Livia","Salie","Sandra","Sean","Sharon","YT"];
+const MAX_EGG_PICK = 10;
+let ledger = { records: [], payments: [] };
+let expanded = null;
+let pickedCount = 1;
+
+function fmtMoney(n){ return "$" + n.toLocaleString(); }
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,'0') + "-" + String(d.getDate()).padStart(2,'0');
+}
+
+async function loadLedger(){
+  try{
+    const res = await window.storage.get(STORE_KEY, true);
+    if(res && res.value){
+      ledger = JSON.parse(res.value);
+      if(!ledger.records) ledger.records = [];
+      if(!ledger.payments) ledger.payments = [];
+    }
+  }catch(e){
+    ledger = { records: [], payments: [] };
+  }
+  document.getElementById('loading').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('in-date').value = todayStr();
+
+  const nameSelect = document.getElementById('in-name');
+  nameSelect.innerHTML = '<option value="" disabled selected>選擇姓名</option>' +
+    MEMBERS.map(n=>`<option value="${escapeAttr(n)}">${escapeHtml(n)}</option>`).join('');
+
+  renderEggPicker();
+  render();
+}
+
+function renderEggPicker(){
+  const el = document.getElementById('egg-picker');
+  let html = '';
+  for(let i=1;i<=MAX_EGG_PICK;i++){
+    html += `<button type="button" class="egg-btn ${i<=pickedCount?'selected':''}" onclick="setPickedCount(${i})">🥚</button>`;
+  }
+  html += `<span class="egg-picker-count">${pickedCount} 顆</span>`;
+  el.innerHTML = html;
+}
+
+function setPickedCount(n){
+  pickedCount = n;
+  renderEggPicker();
+}
+
+async function saveLedger(){
+  try{
+    await window.storage.set(STORE_KEY, JSON.stringify(ledger), true);
+  }catch(e){
+    alert("儲存失敗，請再試一次");
+  }
+}
+
+function getPeopleSummary(){
+  const names = {};
+  ledger.records.forEach(r=>{
+    if(!names[r.name]) names[r.name] = 0;
+    names[r.name] += r.count;
+  });
+  const paid = {};
+  ledger.payments.forEach(p=>{
+    if(!paid[p.name]) paid[p.name] = 0;
+    paid[p.name] += p.amount;
+  });
+  return Object.keys(names).map(name=>{
+    const totalEggs = names[name];
+    const totalCost = totalEggs * 12;
+    const totalPaid = paid[name] || 0;
+    const balance = totalCost - totalPaid;
+    return { name, totalEggs, totalCost, totalPaid, balance };
+  }).sort((a,b)=> b.balance - a.balance || a.name.localeCompare(b.name));
+}
+
+function renderAdminSummary(){
+  const el = document.getElementById('admin-summary');
+  if(!el) return;
+
+  const today = todayStr();
+  const todayEggs = ledger.records.filter(r=>r.date===today).reduce((s,r)=>s+r.count,0);
+  const allEggs = ledger.records.reduce((s,r)=>s+r.count,0);
+  const allRevenue = allEggs * 12;
+  const allPaid = ledger.payments.reduce((s,p)=>s+p.amount,0);
+  const outstanding = allRevenue - allPaid;
+
+  const byMember = {};
+  MEMBERS.forEach(m=> byMember[m] = { eggs:0, orders:0 });
+  ledger.records.forEach(r=>{
+    if(!byMember[r.name]) byMember[r.name] = { eggs:0, orders:0 };
+    byMember[r.name].eggs += r.count;
+    byMember[r.name].orders += 1;
+  });
+
+  const rosterRows = MEMBERS.map(m=>{
+    const d = byMember[m];
+    return `<tr>
+      <td>${escapeHtml(m)}</td>
+      <td class="num-col">${d.orders}</td>
+      <td class="num-col">${d.eggs}</td>
+      <td class="num-col">${fmtMoney(d.eggs*12)}</td>
+    </tr>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="admin-grid">
+      <div class="admin-stat">
+        <div class="num">${todayEggs} 顆</div>
+        <div class="label">今日訂購</div>
+      </div>
+      <div class="admin-stat">
+        <div class="num">${allEggs} 顆</div>
+        <div class="label">累計訂購</div>
+      </div>
+      <div class="admin-stat">
+        <div class="num">${fmtMoney(allRevenue)}</div>
+        <div class="label">累計應收</div>
+      </div>
+      <div class="admin-stat">
+        <div class="num">${fmtMoney(outstanding)}</div>
+        <div class="label">尚未收款</div>
+      </div>
+    </div>
+    <table class="admin-table">
+      <tr><th>成員</th><th class="num-col">次數</th><th class="num-col">顆數</th><th class="num-col">應收</th></tr>
+      ${rosterRows}
+    </table>`;
+}
+
+function render(){
+  renderAdminSummary();
+  const summary = getPeopleSummary();
+  const listEl = document.getElementById('people-list');
+
+  if(summary.length===0){
+    listEl.innerHTML = `<div class="empty-state">還沒有紀錄，登記第一筆蛋吧 🥚</div>`;
+    return;
+  }
+
+  listEl.innerHTML = summary.map(p=>{
+    const cardsDone = Math.floor(p.totalEggs/10);
+    const remainder = p.totalEggs % 10;
+    const isOpen = expanded === p.name;
+    const badgeClass = p.balance > 0 ? 'badge-owed' : 'badge-clear';
+    const badgeText = p.balance > 0 ? `欠 ${fmtMoney(p.balance)}` : '已結清';
+
+    let detailHtml = '';
+    if(isOpen){
+      const records = ledger.records
+        .map((r,i)=>({...r, idx:i}))
+        .filter(r=>r.name===p.name)
+        .sort((a,b)=> a.date.localeCompare(b.date));
+
+      const rows = records.map(r=>`
+        <tr>
+          <td>${r.date}</td>
+          <td>${r.count} 顆</td>
+          <td><button class="del" onclick="deleteRecord(${r.idx})">刪除</button></td>
+        </tr>`).join('');
+
+      let pills = '';
+      for(let i=0;i<cardsDone;i++) pills += `<div class="egg-pill egg-full">🥚</div>`;
+      for(let i=0;i<remainder;i++) pills += `<div class="egg-pill egg-empty">🥚</div>`;
+      for(let i=remainder;i<10 && remainder>0;i++) pills += `<div class="egg-pill egg-empty" style="opacity:.35">·</div>`;
+
+      detailHtml = `
+        <div class="detail">
+          <div class="cards-strip">${pills}</div>
+          <table>
+            <tr><th>日期</th><th>顆數</th><th></th></tr>
+            ${rows}
+          </table>
+          <div style="font-size:13px; color:var(--ink-soft); margin-bottom:10px;">
+            累積 ${p.totalEggs} 顆・共 ${fmtMoney(p.totalCost)}・已付 ${fmtMoney(p.totalPaid)}
+          </div>
+          <div class="pay-row">
+            <div style="flex:1;">
+              <label>登記付款金額</label>
+              <input type="number" id="pay-${cssSafe(p.name)}" value="${Math.max(p.balance,0)}">
+            </div>
+            <button class="btn-sage" onclick="registerPayment('${escapeAttr(p.name)}')">登記付款</button>
+          </div>
+        </div>`;
+    }
+
+    return `
+      <div>
+        <div class="person" onclick="toggleExpand('${escapeAttr(p.name)}')">
+          <div>
+            <div class="person-name">${escapeHtml(p.name)}</div>
+            <div class="person-sub">${p.totalEggs} 顆・${cardsDone} 張整卡${remainder?`＋${remainder}顆`:''}</div>
+          </div>
+          <div class="badge ${badgeClass}">${badgeText}</div>
+        </div>
+        ${detailHtml}
+      </div>`;
+  }).join('');
+}
+
+function toggleExpand(name){
+  expanded = expanded === name ? null : name;
+  render();
+}
+
+async function addRecord(){
+  const name = document.getElementById('in-name').value;
+  const date = document.getElementById('in-date').value;
+  const count = pickedCount;
+
+  if(!name){ alert('請選擇姓名'); return; }
+  if(!date){ alert('請選擇日期'); return; }
+  if(!count || count < 1){ alert('顆數要大於 0'); return; }
+
+  ledger.records.push({ name, date, count });
+  await saveLedger();
+  document.getElementById('in-name').value = '';
+  pickedCount = 1;
+  renderEggPicker();
+  render();
+}
+
+async function deleteRecord(idx){
+  if(!confirm('確定要刪除這筆紀錄嗎？')) return;
+  ledger.records.splice(idx,1);
+  await saveLedger();
+  render();
+}
+
+async function registerPayment(name){
+  const input = document.getElementById(`pay-${cssSafe(name)}`);
+  const amount = parseFloat(input.value);
+  if(!amount || amount <= 0){ alert('請輸入有效金額'); return; }
+  ledger.payments.push({ name, date: todayStr(), amount });
+  await saveLedger();
+  render();
+}
+
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+function escapeAttr(s){ return escapeHtml(s).replace(/"/g,'&quot;'); }
+function cssSafe(s){ return s.replace(/[^a-zA-Z0-9]/g,'_'); }
+
+loadLedger();
+</script>
+</body>
+</html>
