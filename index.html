@@ -326,7 +326,9 @@
 
     <div class="card" id="admin-card">
       <h2>團主統計</h2>
-      <div id="admin-summary"></div>
+      <div id="admin-dashboard"></div>
+      <button class="btn-ghost" style="width:100%; margin-top:4px;" onclick="toggleAdminDetail()" id="admin-toggle-btn">查看成員明細 ▾</button>
+      <div id="admin-detail" style="display:none; margin-top:12px;"></div>
     </div>
 
     <div class="card" id="list-card">
@@ -334,17 +336,17 @@
       <div id="people-list"></div>
     </div>
 
-    <div class="footer-note">資料存在這個蛋帳本裡，重新整理不會消失。<br>需要備份到 Notion 時，跟我說一聲，我幫你整理成表格貼過去。</div>
+    <div class="footer-note">本良心商店使用動福蛋，蛋蛋每顆 12 元・每 10 顆累積一張，再請記得匯款給買蛋員🐤感恩讚嘆</div>
   </div>
 </div>
 
 <script>
-const STORE_KEY = "egg-ledger";
 const MEMBERS = ["Avis","Cece","Dolphin","JC","Livia","Salie","Sandra","Sean","Sharon","YT"];
-const MAX_EGG_PICK = 10;
+const MAX_EGG_PICK = 7;
 let ledger = { records: [], payments: [] };
 let expanded = null;
 let pickedCount = 1;
+let adminDetailOpen = false;
 
 function fmtMoney(n){ return "$" + n.toLocaleString(); }
 function todayStr(){
@@ -352,16 +354,26 @@ function todayStr(){
   return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,'0') + "-" + String(d.getDate()).padStart(2,'0');
 }
 
+// ===== 儲存設定：請到 jsonbin.io 免費申請後，把下面兩個值換掉 =====
+const JSONBIN_BIN_ID = "6a96fc7eda38895dfe2bcd4b";
+const JSONBIN_API_KEY = "$2a$10$2rkVnWf1nm62/B9KeH9CY.nGK7AyTbUzl4ZInVAtPrzJ9jfsbvtbi";
+const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
+// ================================================================
+
 async function loadLedger(){
   try{
-    const res = await window.storage.get(STORE_KEY, true);
-    if(res && res.value){
-      ledger = JSON.parse(res.value);
-      if(!ledger.records) ledger.records = [];
-      if(!ledger.payments) ledger.payments = [];
-    }
+    const res = await fetch(`${JSONBIN_URL}/latest`, {
+      headers: { "X-Master-Key": JSONBIN_API_KEY }
+    });
+    if(!res.ok) throw new Error("讀取失敗");
+    const data = await res.json();
+    ledger = data.record || { records: [], payments: [] };
+    if(!ledger.records) ledger.records = [];
+    if(!ledger.payments) ledger.payments = [];
   }catch(e){
-    ledger = { records: [], payments: [] };
+    console.error(e);
+    document.getElementById('loading').innerHTML = '讀取失敗，請確認網路連線，或聯絡買蛋員確認設定';
+    return;
   }
   document.getElementById('loading').style.display='none';
   document.getElementById('app').style.display='block';
@@ -392,9 +404,18 @@ function setPickedCount(n){
 
 async function saveLedger(){
   try{
-    await window.storage.set(STORE_KEY, JSON.stringify(ledger), true);
+    const res = await fetch(JSONBIN_URL, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Master-Key": JSONBIN_API_KEY
+      },
+      body: JSON.stringify(ledger)
+    });
+    if(!res.ok) throw new Error("儲存失敗");
   }catch(e){
-    alert("儲存失敗，請再試一次");
+    console.error(e);
+    alert("儲存失敗，請檢查網路連線後再試一次");
   }
 }
 
@@ -419,8 +440,9 @@ function getPeopleSummary(){
 }
 
 function renderAdminSummary(){
-  const el = document.getElementById('admin-summary');
-  if(!el) return;
+  const dashEl = document.getElementById('admin-dashboard');
+  const detailEl = document.getElementById('admin-detail');
+  if(!dashEl || !detailEl) return;
 
   const today = todayStr();
   const todayEggs = ledger.records.filter(r=>r.date===today).reduce((s,r)=>s+r.count,0);
@@ -428,6 +450,26 @@ function renderAdminSummary(){
   const allRevenue = allEggs * 12;
   const allPaid = ledger.payments.reduce((s,p)=>s+p.amount,0);
   const outstanding = allRevenue - allPaid;
+
+  dashEl.innerHTML = `
+    <div class="admin-grid">
+      <div class="admin-stat">
+        <div class="num">${todayEggs} 顆</div>
+        <div class="label">今日訂購</div>
+      </div>
+      <div class="admin-stat">
+        <div class="num">${allEggs} 顆</div>
+        <div class="label">累計訂購</div>
+      </div>
+      <div class="admin-stat">
+        <div class="num">${fmtMoney(allRevenue)}</div>
+        <div class="label">累計應收</div>
+      </div>
+      <div class="admin-stat">
+        <div class="num">${fmtMoney(outstanding)}</div>
+        <div class="label">尚未收款</div>
+      </div>
+    </div>`;
 
   const byMember = {};
   MEMBERS.forEach(m=> byMember[m] = { eggs:0, orders:0 });
@@ -447,29 +489,19 @@ function renderAdminSummary(){
     </tr>`;
   }).join('');
 
-  el.innerHTML = `
-    <div class="admin-grid">
-      <div class="admin-stat">
-        <div class="num">${todayEggs} 顆</div>
-        <div class="label">今日訂購</div>
-      </div>
-      <div class="admin-stat">
-        <div class="num">${allEggs} 顆</div>
-        <div class="label">累計訂購</div>
-      </div>
-      <div class="admin-stat">
-        <div class="num">${fmtMoney(allRevenue)}</div>
-        <div class="label">累計應收</div>
-      </div>
-      <div class="admin-stat">
-        <div class="num">${fmtMoney(outstanding)}</div>
-        <div class="label">尚未收款</div>
-      </div>
-    </div>
+  detailEl.innerHTML = `
     <table class="admin-table">
       <tr><th>成員</th><th class="num-col">次數</th><th class="num-col">顆數</th><th class="num-col">應收</th></tr>
       ${rosterRows}
     </table>`;
+
+  detailEl.style.display = adminDetailOpen ? 'block' : 'none';
+  document.getElementById('admin-toggle-btn').textContent = adminDetailOpen ? '收合成員明細 ▴' : '查看成員明細 ▾';
+}
+
+function toggleAdminDetail(){
+  adminDetailOpen = !adminDetailOpen;
+  renderAdminSummary();
 }
 
 function render(){
