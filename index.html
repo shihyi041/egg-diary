@@ -289,6 +289,76 @@
   .admin-table td.num-col, .admin-table th.num-col{
     text-align:right;
   }
+  .kitchen-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:10px 4px;
+    border-bottom:1px solid var(--line);
+  }
+  .kitchen-row:last-child{border-bottom:none;}
+  .kitchen-check{
+    width:24px;height:24px;
+    border-radius:7px;
+    border:2px solid var(--yolk);
+    flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+    background:#fff;
+    font-size:14px;
+    color:#fff;
+  }
+  .kitchen-info{
+    flex:1;
+    font-size:14px;
+  }
+  .kitchen-info b{font-weight:700;}
+  .kitchen-info span{
+    color:var(--ink-soft);
+    margin-left:6px;
+  }
+  .toast{
+    position:fixed;
+    top:16px;
+    left:50%;
+    transform:translateX(-50%) translateY(-20px);
+    background:var(--ink);
+    color:#fff;
+    padding:12px 20px;
+    border-radius:12px;
+    font-size:14px;
+    font-weight:600;
+    box-shadow:0 8px 24px rgba(61,43,31,0.25);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease;
+    z-index:1000;
+    white-space:nowrap;
+  }
+  .toast.show{
+    opacity:1;
+    transform:translateX(-50%) translateY(0);
+  }
+  .row-actions{
+    display:flex;
+    gap:4px;
+  }
+  .edit-btn{
+    color:var(--sage);
+    cursor:pointer;
+    font-size:12px;
+    background:none;
+    border:none;
+    padding:2px 6px;
+  }
+  .edit-row td{
+    padding-top:8px;
+    padding-bottom:8px;
+  }
+  .edit-row input{
+    height:34px;
+    font-size:13px;
+  }
 </style>
 </head>
 <body>
@@ -300,9 +370,16 @@
 
   <div id="loading" class="loading">讀取中…</div>
 
+  <div id="toast" class="toast"></div>
+
   <div id="app" style="display:none;">
+    <div class="card" id="kitchen-card" style="display:none;">
+      <h2>今天該下幾顆蛋？</h2>
+      <div id="kitchen-list"></div>
+    </div>
+
     <div class="card">
-      <h2>您今天吃了幾顆</h2>
+      <h2>今天想吃幾顆蛋？</h2>
       <div class="row">
         <div>
           <label>姓名</label>
@@ -324,16 +401,16 @@
       <button class="btn-primary" onclick="addRecord()">新增紀錄</button>
     </div>
 
+    <div class="card" id="list-card">
+      <h2>吃蛋概況</h2>
+      <div id="people-list"></div>
+    </div>
+
     <div class="card" id="admin-card">
-      <h2>團主統計</h2>
+      <h2>蛋蛋明細表</h2>
       <div id="admin-dashboard"></div>
       <button class="btn-ghost" style="width:100%; margin-top:4px;" onclick="toggleAdminDetail()" id="admin-toggle-btn">查看成員明細 ▾</button>
       <div id="admin-detail" style="display:none; margin-top:12px;"></div>
-    </div>
-
-    <div class="card" id="list-card">
-      <h2>大家的帳</h2>
-      <div id="people-list"></div>
     </div>
 
     <div class="footer-note">本良心商店使用動福蛋，蛋蛋每顆 12 元・每 10 顆累積一張，再請記得匯款給買蛋員🐤感恩讚嘆</div>
@@ -347,11 +424,19 @@ let ledger = { records: [], payments: [] };
 let expanded = null;
 let pickedCount = 1;
 let adminDetailOpen = false;
+let editingIdx = null;
 
 function fmtMoney(n){ return "$" + n.toLocaleString(); }
 function todayStr(){
   const d = new Date();
   return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,'0') + "-" + String(d.getDate()).padStart(2,'0');
+}
+function showToast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=> el.classList.remove('show'), 2500);
 }
 
 // ===== 儲存設定：請到 jsonbin.io 免費申請後，把下面兩個值換掉 =====
@@ -362,18 +447,14 @@ const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
 
 async function loadLedger(){
   try{
-    const res = await fetch(`${JSONBIN_URL}/latest`, {
-      headers: { "X-Master-Key": JSONBIN_API_KEY }
-    });
-    if(!res.ok) throw new Error("讀取失敗");
-    const data = await res.json();
-    ledger = data.record || { records: [], payments: [] };
-    if(!ledger.records) ledger.records = [];
-    if(!ledger.payments) ledger.payments = [];
+    const res = await window.storage.get(STORE_KEY, true);
+    if(res && res.value){
+      ledger = JSON.parse(res.value);
+      if(!ledger.records) ledger.records = [];
+      if(!ledger.payments) ledger.payments = [];
+    }
   }catch(e){
-    console.error(e);
-    document.getElementById('loading').innerHTML = '讀取失敗，請確認網路連線，或聯絡買蛋員確認設定';
-    return;
+    ledger = { records: [], payments: [] };
   }
   document.getElementById('loading').style.display='none';
   document.getElementById('app').style.display='block';
@@ -404,18 +485,10 @@ function setPickedCount(n){
 
 async function saveLedger(){
   try{
-    const res = await fetch(JSONBIN_URL, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Master-Key": JSONBIN_API_KEY
-      },
-      body: JSON.stringify(ledger)
-    });
-    if(!res.ok) throw new Error("儲存失敗");
+    await window.storage.set(STORE_KEY, JSON.stringify(ledger), true);
   }catch(e){
     console.error(e);
-    alert("儲存失敗，請檢查網路連線後再試一次");
+    alert("儲存失敗，請再試一次");
   }
 }
 
@@ -437,6 +510,47 @@ function getPeopleSummary(){
     const balance = totalCost - totalPaid;
     return { name, totalEggs, totalCost, totalPaid, balance };
   }).sort((a,b)=> b.balance - a.balance || a.name.localeCompare(b.name));
+}
+
+function renderKitchen(){
+  const card = document.getElementById('kitchen-card');
+  const listEl = document.getElementById('kitchen-list');
+  const today = todayStr();
+
+  const pendingByName = {};
+  ledger.records.forEach(r=>{
+    if(r.date === today && r.fulfilled === false){
+      pendingByName[r.name] = (pendingByName[r.name] || 0) + r.count;
+    }
+  });
+
+  const names = Object.keys(pendingByName);
+  if(names.length === 0){
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = 'block';
+
+  const totalEggs = names.reduce((s,n)=> s + pendingByName[n], 0);
+
+  listEl.innerHTML = `
+    <div style="font-size:13px; color:var(--ink-soft); margin-bottom:10px;">今天總共要下 <b style="color:var(--ink);">${totalEggs}</b> 顆蛋，交出去後打勾就會從清單消失</div>
+    ${names.map(name=>`
+      <div class="kitchen-row">
+        <div class="kitchen-check" onclick="markFulfilled('${escapeAttr(name)}')"></div>
+        <div class="kitchen-info"><b>${escapeHtml(name)}</b><span>${pendingByName[name]} 顆</span></div>
+      </div>`).join('')}`;
+}
+
+async function markFulfilled(name){
+  const today = todayStr();
+  ledger.records.forEach(r=>{
+    if(r.name===name && r.date===today && r.fulfilled===false){
+      r.fulfilled = true;
+    }
+  });
+  await saveLedger();
+  render();
 }
 
 function renderAdminSummary(){
@@ -505,6 +619,7 @@ function toggleAdminDetail(){
 }
 
 function render(){
+  renderKitchen();
   renderAdminSummary();
   const summary = getPeopleSummary();
   const listEl = document.getElementById('people-list');
@@ -528,12 +643,32 @@ function render(){
         .filter(r=>r.name===p.name)
         .sort((a,b)=> a.date.localeCompare(b.date));
 
-      const rows = records.map(r=>`
+      const rows = records.map(r=>{
+        if(editingIdx === r.idx){
+          return `
+            <tr class="edit-row">
+              <td><input type="date" id="edit-date-${r.idx}" value="${r.date}"></td>
+              <td><input type="number" min="1" id="edit-count-${r.idx}" value="${r.count}"></td>
+              <td>
+                <div class="row-actions">
+                  <button class="edit-btn" onclick="saveEdit(${r.idx})">儲存</button>
+                  <button class="del" onclick="cancelEdit()">取消</button>
+                </div>
+              </td>
+            </tr>`;
+        }
+        return `
         <tr>
           <td>${r.date}</td>
           <td>${r.count} 顆</td>
-          <td><button class="del" onclick="deleteRecord(${r.idx})">刪除</button></td>
-        </tr>`).join('');
+          <td>
+            <div class="row-actions">
+              <button class="edit-btn" onclick="startEdit(${r.idx})">編輯</button>
+              <button class="del" onclick="deleteRecord(${r.idx})">刪除</button>
+            </div>
+          </td>
+        </tr>`;
+      }).join('');
 
       let pills = '';
       for(let i=0;i<cardsDone;i++) pills += `<div class="egg-pill egg-full">🥚</div>`;
@@ -588,11 +723,38 @@ async function addRecord(){
   if(!date){ alert('請選擇日期'); return; }
   if(!count || count < 1){ alert('顆數要大於 0'); return; }
 
-  ledger.records.push({ name, date, count });
+  ledger.records.push({ name, date, count, fulfilled: false });
   await saveLedger();
   document.getElementById('in-name').value = '';
   pickedCount = 1;
   renderEggPicker();
+  render();
+  showToast(`✅ 已送出！${name} 的 ${count} 顆蛋，煮蛋人收到了 🐤`);
+}
+
+function startEdit(idx){
+  editingIdx = idx;
+  render();
+}
+
+function cancelEdit(){
+  editingIdx = null;
+  render();
+}
+
+async function saveEdit(idx){
+  const dateInput = document.getElementById(`edit-date-${idx}`);
+  const countInput = document.getElementById(`edit-count-${idx}`);
+  const date = dateInput.value;
+  const count = parseInt(countInput.value, 10);
+
+  if(!date){ alert('請選擇日期'); return; }
+  if(!count || count < 1){ alert('顆數要大於 0'); return; }
+
+  ledger.records[idx].date = date;
+  ledger.records[idx].count = count;
+  editingIdx = null;
+  await saveLedger();
   render();
 }
 
