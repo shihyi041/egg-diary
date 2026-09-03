@@ -355,9 +355,31 @@
     padding-top:8px;
     padding-bottom:8px;
   }
+  .edit-row-inner{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:8px;
+  }
+  .edit-field{
+    min-width:0;
+  }
+  .edit-field-date{
+    flex:1 1 150px;
+  }
+  .edit-field-count{
+    flex:0 0 64px;
+  }
   .edit-row input{
     height:34px;
     font-size:13px;
+    width:100%;
+    padding-left:8px;
+    padding-right:8px;
+  }
+  .edit-row .row-actions{
+    flex:0 0 auto;
+    margin-left:auto;
   }
 </style>
 </head>
@@ -374,7 +396,7 @@
 
   <div id="app" style="display:none;">
     <div class="card" id="kitchen-card" style="display:none;">
-      <h2>今天該下幾顆蛋？</h2>
+      <h2>🐤今日訂單</h2>
       <div id="kitchen-list"></div>
     </div>
 
@@ -447,14 +469,18 @@ const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
 
 async function loadLedger(){
   try{
-    const res = await window.storage.get(STORE_KEY, true);
-    if(res && res.value){
-      ledger = JSON.parse(res.value);
-      if(!ledger.records) ledger.records = [];
-      if(!ledger.payments) ledger.payments = [];
-    }
+    const res = await fetch(`${JSONBIN_URL}/latest`, {
+      headers: { "X-Master-Key": JSONBIN_API_KEY }
+    });
+    if(!res.ok) throw new Error("讀取失敗");
+    const data = await res.json();
+    ledger = data.record || { records: [], payments: [] };
+    if(!ledger.records) ledger.records = [];
+    if(!ledger.payments) ledger.payments = [];
   }catch(e){
-    ledger = { records: [], payments: [] };
+    console.error(e);
+    document.getElementById('loading').innerHTML = '讀取失敗，請確認網路連線，或聯絡買蛋員確認設定';
+    return;
   }
   document.getElementById('loading').style.display='none';
   document.getElementById('app').style.display='block';
@@ -485,10 +511,18 @@ function setPickedCount(n){
 
 async function saveLedger(){
   try{
-    await window.storage.set(STORE_KEY, JSON.stringify(ledger), true);
+    const res = await fetch(JSONBIN_URL, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Master-Key": JSONBIN_API_KEY
+      },
+      body: JSON.stringify(ledger)
+    });
+    if(!res.ok) throw new Error("儲存失敗");
   }catch(e){
     console.error(e);
-    alert("儲存失敗，請再試一次");
+    alert("儲存失敗，請檢查網路連線後再試一次");
   }
 }
 
@@ -533,13 +567,11 @@ function renderKitchen(){
 
   const totalEggs = names.reduce((s,n)=> s + pendingByName[n], 0);
 
-  listEl.innerHTML = `
-    <div style="font-size:13px; color:var(--ink-soft); margin-bottom:10px;">今天總共要下 <b style="color:var(--ink);">${totalEggs}</b> 顆蛋，交出去後打勾就會從清單消失</div>
-    ${names.map(name=>`
+  listEl.innerHTML = names.map(name=>`
       <div class="kitchen-row">
         <div class="kitchen-check" onclick="markFulfilled('${escapeAttr(name)}')"></div>
         <div class="kitchen-info"><b>${escapeHtml(name)}</b><span>${pendingByName[name]} 顆</span></div>
-      </div>`).join('')}`;
+      </div>`).join('');
 }
 
 async function markFulfilled(name){
@@ -647,12 +679,18 @@ function render(){
         if(editingIdx === r.idx){
           return `
             <tr class="edit-row">
-              <td><input type="date" id="edit-date-${r.idx}" value="${r.date}"></td>
-              <td><input type="number" min="1" id="edit-count-${r.idx}" value="${r.count}"></td>
-              <td>
-                <div class="row-actions">
-                  <button class="edit-btn" onclick="saveEdit(${r.idx})">儲存</button>
-                  <button class="del" onclick="cancelEdit()">取消</button>
+              <td colspan="3">
+                <div class="edit-row-inner">
+                  <div class="edit-field edit-field-date">
+                    <input type="date" id="edit-date-${r.idx}" value="${r.date}">
+                  </div>
+                  <div class="edit-field edit-field-count">
+                    <input type="number" min="1" id="edit-count-${r.idx}" value="${r.count}">
+                  </div>
+                  <div class="row-actions">
+                    <button class="edit-btn" onclick="saveEdit(${r.idx})">儲存</button>
+                    <button class="del" onclick="cancelEdit()">取消</button>
+                  </div>
                 </div>
               </td>
             </tr>`;
